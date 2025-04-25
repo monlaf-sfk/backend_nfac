@@ -46,6 +46,8 @@ class HTTPClient:
             raise RuntimeError("ClientSession not initialized via lifespan event.")
         return self._session
 
+    async def close(self):
+        await self.close_session()
 
 
 class CoingeckoClient(HTTPClient):
