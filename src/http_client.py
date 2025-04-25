@@ -1,6 +1,11 @@
 from aiohttp import ClientSession
+from async_lru import alru_cache
+import logging
+
+logger = logging.getLogger(__name__)
 
 class HTTPClient:
+
     def __init__(self, base_url: str, api_key: str):
         self.base_url = base_url
         self._session = ClientSession(
@@ -10,16 +15,43 @@ class HTTPClient:
                 "x-cg-pro-api-key": api_key
             },
         )
-#api.coingecko.com/api
-class CoingeckoClient(HTTPClient):
-    async def get(self):
-        async with self._session.get("v3/coins/list") as response:
-            if response.status != 200:
-                raise Exception(f"Error: {response.status}")
-            return await response.json()
-    async def get_currency(self, currency_id: str):
-        async with self._session.get(f"v3/coins/{currency_id}") as response:
-            if response.status != 200:
-                raise Exception(f"Error: {response.status}")
-            return await response.json()
 
+    async def close(self):
+        await self._session.close()
+
+
+class CoingeckoClient(HTTPClient):
+    async def get_markets(self, vs_currency: str = 'usd'):
+        include_sparkline = False
+        allowed_currencies = ['usd']
+        if vs_currency.lower() not in allowed_currencies:
+            logger.warning(f"Unsupported currency '{vs_currency}' requested. Defaulting to 'usd'.")
+            vs_currency = 'usd'
+
+        params = {
+            'vs_currency': vs_currency.lower(),
+            'order': 'market_cap_desc',
+            'per_page': 100,
+            'page': 1,
+            'sparkline': str(include_sparkline).lower(),
+            'price_change_percentage': '24h'
+        }
+        try:
+            async with self._session.get("v3/coins/markets", params=params) as response:
+                response.raise_for_status()
+                print(f"Response status: {response.status}")
+                return await response.json()
+        except Exception as e:
+            logger.error(f"Error fetching markets for {vs_currency}: {e}")
+
+            raise Exception(f"Error fetching market data: {e}") from e
+
+    @alru_cache
+    async def get_coin_details(self, currency_id: str):
+        try:
+            async with self._session.get(f"v3/coins/{currency_id}") as response:
+                response.raise_for_status()
+                return await response.json()
+        except Exception as e:
+            logger.error(f"Error fetching details for {currency_id}: {e}")
+            raise Exception(f"Error fetching coin details: {e}") from e
