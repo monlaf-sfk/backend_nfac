@@ -1,53 +1,41 @@
-from aiohttp import ClientSession
 from async_lru import alru_cache
+from aiohttp import ClientSession
 import logging
 
 logger = logging.getLogger(__name__)
 
-class HTTPClient:
 
+
+logger = logging.getLogger(__name__)
+
+class HTTPClient:
     def __init__(self, base_url: str, api_key: str):
         self.base_url = base_url
-        self._session = ClientSession(
-            base_url=base_url,
-            headers={
-                "Accept": "application/json",
-                "x-cg-pro-api-key": api_key
-            },
-        )
+        self.api_key = api_key
+        self._session: ClientSession | None = None
 
     async def initialize_session(self):
-        """Creates the ClientSession. Call this during app startup."""
         if self._session is None:
             logger.info(f"Initializing ClientSession for {self.base_url}")
             self._session = ClientSession(
                 base_url=self.base_url,
                 headers={
                     "Accept": "application/json",
-                    "x-cg-pro-api-key": self.api_key
+                    "x-cg-pro-api-key": self.api_key,
                 },
             )
-        else:
-            logger.info(f"ClientSession for {self.base_url} already initialized.")
 
     async def close_session(self):
-        """Closes the ClientSession. Call this during app shutdown."""
         if self._session:
             logger.info(f"Closing ClientSession for {self.base_url}")
             await self._session.close()
             self._session = None
-        else:
-            logger.info(f"ClientSession for {self.base_url} was not initialized or already closed.")
 
     async def _get_session(self) -> ClientSession:
-        """Helper to get the session, ensuring it's initialized."""
-
         if self._session is None:
-            raise RuntimeError("ClientSession not initialized via lifespan event.")
+            raise RuntimeError("ClientSession not initialized.")
         return self._session
 
-    async def close(self):
-        await self.close_session()
 
 
 class CoingeckoClient(HTTPClient):
