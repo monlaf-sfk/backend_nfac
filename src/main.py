@@ -6,6 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import logging
 
+from src.config import settings
 from src.router import router as router_crypto
 from src.init import coin_gecko_client
 from src.task import update_market_data_task
@@ -26,6 +27,7 @@ app.include_router(router_crypto)
 origins = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
+    settings.FRONTEND_URL,
 
 ]
 
