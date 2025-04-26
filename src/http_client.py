@@ -21,7 +21,7 @@ class HTTPClient:
                 base_url=self.base_url,
                 headers={
                     "Accept": "application/json",
-                    "x-cg-pro-api-key": self.api_key,
+                    "x-cg-demo-api-key": self.api_key,
                 },
             )
 
